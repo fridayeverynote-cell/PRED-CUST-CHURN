@@ -1,35 +1,149 @@
-import streamlit as st
+from pathlib import Path
 import pandas as pd
+import streamlit as st
 
-st.title("🎯 집중 관리 대상 고객 리스트")
+st.set_page_config(
+    page_title="위험 고객 관리",
+    page_icon="⚠️",
+    layout="wide"
+)
 
-# 임시 데이터 로드
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 1.2rem;
+    padding-bottom: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+.main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.2rem;
+}
+
+.sub-title {
+    font-size: 1.05rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+}
+
+.card-danger {
+    background-color: #fff5f5;
+    border: 1px solid #fecaca;
+    border-radius: 18px;
+    padding: 16px 20px;
+}
+
+.card-warning {
+    background-color: #fffbeb;
+    border: 1px solid #fed7aa;
+    border-radius: 18px;
+    padding: 16px 20px;
+}
+
+.card-success {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 18px;
+    padding: 16px 20px;
+}
+
+.card-label {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+
+.card-number {
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.section-card {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 18px 20px;
+    margin-top: 18px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+DATA_PATH = r"C:\team_pj\returns\PRED-CUST-CHURN.git\data\insurance_policyholder_churn_synthetic.csv"
+
 @st.cache_data
 def load_data():
-    df = pd.read_csv("././data/insurance_policyholder_churn_synthetic.csv")
-    df['churn_prob'] = df['churn_probability_true'] # 실제로는 모델 예측값을 매핑
+    df = pd.read_csv(DATA_PATH)
+    df["risk_level"] = pd.cut(
+        df["churn_probability_true"],
+        bins=[-1, 0.4, 0.7, 1.0],
+        labels=["저위험", "중위험", "고위험"]
+    )
     return df
 
 df = load_data()
 
-# 필터링 사이드바 UI
-st.sidebar.header("필터 설정")
-min_prob = st.sidebar.slider("최소 이탈 확률", 0.0, 1.0, 0.7)
-selected_policy = st.sidebar.multiselect("보험 종류", df['policy_type'].unique(), default=df['policy_type'].unique())
+st.markdown('<div class="main-title">위험 고객 관리</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">이탈 위험 고객 모니터링</div>', unsafe_allow_html=True)
 
-# 데이터 필터링 적용
-filtered_df = df[(df['churn_prob'] >= min_prob) & (df['policy_type'].isin(selected_policy))]
+col1, col2, col3 = st.columns(3)
 
-st.write(f"총 **{len(filtered_df)}명**의 집중 관리 대상이 검색되었습니다.")
+high_cnt = int((df["risk_level"] == "고위험").sum())
+mid_cnt = int((df["risk_level"] == "중위험").sum())
+low_cnt = int((df["risk_level"] == "저위험").sum())
 
-# 데이터프레임 출력 (그리드 형태)
-st.dataframe(filtered_df[['customer_id', 'age', 'marital_status', 'policy_type', 'churn_prob']].sort_values(by='churn_prob', ascending=False))
+with col1:
+    st.markdown(f"""
+    <div class="card-danger">
+        <div class="card-label" style="color:#dc2626;">고위험</div>
+        <div class="card-number" style="color:#b91c1c;">{high_cnt}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# CSV 다운로드 기능
-csv = filtered_df.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="📥 결과 다운로드 (CSV)",
-    data=csv,
-    file_name='high_risk_customers.csv',
-    mime='text/csv',
-)
+with col2:
+    st.markdown(f"""
+    <div class="card-warning">
+        <div class="card-label" style="color:#d97706;">중위험</div>
+        <div class="card-number" style="color:#c2410c;">{mid_cnt}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown(f"""
+    <div class="card-success">
+        <div class="card-label" style="color:#16a34a;">저위험</div>
+        <div class="card-number" style="color:#15803d;">{low_cnt}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown('<div class="section-card">', unsafe_allow_html=True)
+
+search = st.text_input("고객 검색", placeholder="고객 ID 또는 지역 검색")
+risk_filter = st.selectbox("위험도", ["모든 위험도", "고위험", "중위험", "저위험"])
+
+filtered = df.copy()
+
+if search:
+    keyword = search.strip()
+    filtered = filtered[
+        filtered["customer_id"].astype(str).str.contains(keyword, case=False, na=False) |
+        filtered["region_name"].astype(str).str.contains(keyword, case=False, na=False)
+    ]
+
+if risk_filter != "모든 위험도":
+    filtered = filtered[filtered["risk_level"] == risk_filter]
+
+show_cols = [
+    "customer_id", "age", "policy_type", "current_premium",
+    "churn_probability_true", "risk_level"
+]
+
+result = filtered[show_cols].copy()
+result.columns = ["고객 ID", "나이", "보험 상품", "월 보험료", "이탈 확률", "위험도"]
+result["이탈 확률"] = (result["이탈 확률"] * 100).round(1).astype(str) + "%"
+result["월 보험료"] = result["월 보험료"].apply(lambda x: f"{int(x):,}원")
+
+st.dataframe(result, use_container_width=True, hide_index=True)
+st.markdown('</div>', unsafe_allow_html=True)
