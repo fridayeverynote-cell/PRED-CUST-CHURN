@@ -46,7 +46,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-DATA_PATH = r"C:\team_pj\returns\PRED-CUST-CHURN.git\data\insurance_policyholder_churn_synthetic.csv"
+DATA_PATH = "././data/insurance_policyholder_churn_synthetic.csv"
 
 @st.cache_data
 def load_data():
