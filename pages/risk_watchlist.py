@@ -105,27 +105,53 @@ with st.container(border=True):
     st.subheader("📋 고객 상세 리스트")
 
     # 검색 및 필터링 컨트롤러 영역
-    ctrl_col1, ctrl_col2 = st.columns([3, 1])
+    ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([1, 2, 1])
+
     with ctrl_col1:
-        search = st.text_input("고객 검색", placeholder="고객 ID 또는 지역명을 입력하세요", label_visibility="collapsed")
+        # 검색 카테고리 선택할 수 있도록 selectbox 추가
+        search_category = st.selectbox(
+            "검색 조건",
+            ["전체", "고객 ID", "지역명"],  # 고객 이름 강제로 반영할 거면 추가
+            label_visibility="collapsed"
+        )
+
     with ctrl_col2:
+        search_keyword = st.text_input(
+            "검색어 입력",
+            placeholder=f"{search_category} 기반으로 검색합니다",
+            label_visibility="collapsed"
+        )
+
+    with ctrl_col3:
         risk_filter = st.selectbox("위험도 필터", ["모든 위험도", "고위험", "중위험", "저위험"], label_visibility="collapsed")
 
     # 데이터 필터링 로직
     filtered = df.copy()
-    if search:
-        keyword = search.strip()
-        filtered = filtered[
-            filtered["customer_id"].astype(str).str.contains(keyword, case=False, na=False) |
-            filtered["region_name"].astype(str).str.contains(keyword, case=False, na=False)
-            ]
-    if risk_filter != "모든 위험도":
-        filtered = filtered[filtered["risk_level"] == risk_filter]
+
+    if search_keyword:
+        keyword = search_keyword.strip()
+
+        if search_category == "전체":
+            # 전체 검색 시 ID와 지역 모두 확인
+            filtered = filtered[
+                filtered["customer_id"].astype(str).str.contains(keyword, case=False, na=False) |
+                filtered["region_name"].astype(str).str.contains(keyword, case=False, na=False)
+                ]
+        elif search_category == "고객 ID":
+            filtered = filtered[filtered["customer_id"].astype(str).str.contains(keyword, case=False, na=False)]
+        elif search_category == "지역명":
+            filtered = filtered[filtered["region_name"].astype(str).str.contains(keyword, case=False, na=False)]
 
     # 데이터 출력용 포맷팅
-    show_cols = ["customer_id", "age", "region_name", "policy_type", "current_premium", "churn_probability_true", "risk_level"]
+    show_cols = ["customer_id", "age", "region_name", "policy_type", "customer_tenure_months", "current_premium", "churn_probability_true", "risk_level"]
     result = filtered[show_cols].copy()
-    result.columns = ["고객 ID", "나이", "지역", "보험 상품", "월 보험료", "이탈 확률", "위험도"]
+
+    # 1. 가입 월 원본 컬럼을 12로 나누어 '년' 단위로 변환 (소수점 첫째자리까지 표시)
+    result["customer_tenure_months"] = (result["customer_tenure_months"] / 12).map("{:.1f}".format)
+
+    # 2. 컬럼명 변경 (가입(년)으로 수정)
+    result.columns = ["고객 ID", "나이", "지역", "보험 상품", "가입 기간", "월 보험료", "이탈 확률", "위험도"]
+    result["가입 기간"] = result["가입 기간"].apply(lambda x: f"{x}년")
 
     # 가독성을 위한 변환
     result["이탈 확률"] = (result["이탈 확률"] * 100).astype(int)
