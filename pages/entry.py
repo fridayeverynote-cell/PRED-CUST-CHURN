@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+import matplotlib.pyplot as plt
 import streamlit as st
 
 from src.model_service import load_scored_customers_file
@@ -58,73 +59,6 @@ DESCRIPTION_KO = {
     "Underlying churn probability used to generate labels (drop before upload if desired)": "라벨 생성용 내부 이탈 확률",
 }
 
-
-st.markdown(
-    """
-<style>
-.block-container {
-    padding-top: 1.2rem;
-    padding-bottom: 2rem;
-    padding-left: 2rem;
-    padding-right: 2rem;
-}
-.main-title {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 0.2rem;
-}
-.sub-title {
-    font-size: 1.05rem;
-    color: #64748b;
-    margin-bottom: 1.5rem;
-}
-.card {
-    background-color: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    padding: 20px 22px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    min-height: 120px;
-}
-.card-title {
-    font-size: 1rem;
-    color: #475569;
-    margin-bottom: 0.6rem;
-}
-.card-value {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #0f172a;
-}
-.section-card {
-    background-color: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    padding: 18px 20px;
-    margin-top: 12px;
-}
-.section-title {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 0.25rem;
-}
-div[data-testid="stSidebarNav"]::before {
-    content: "보험 이탈 예측\\A고객 관리 시스템";
-    white-space: pre-line;
-    display: block;
-    font-size: 2rem;
-    line-height: 1.5;
-    font-weight: 800;
-    color: #25343F;
-    margin-bottom: 1.2rem;
-    padding-left: 0.2rem;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
 @st.cache_data
 def load_data_dictionary() -> pd.DataFrame | None:
     dict_path = Path(__file__).resolve().parent.parent / "data" / "insurance_policyholder_churn_data_dictionary.csv"
@@ -153,8 +87,8 @@ with col1:
     st.markdown(
         f"""
         <div class="card">
-            <div class="card-title">전체 고객 수</div>
-            <div class="card-value">{total_customers:,}</div>
+            <div class="card-title">전체 고객 수/ 현재 고객 수 </div>
+            <div class="card-value">{total_customers:,} / {total_customers-predicted_churn_count:,}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -185,20 +119,55 @@ left, right = st.columns(2)
 with left:
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">연령대별 예측 이탈률</div>', unsafe_allow_html=True)
-    age_churn = (
-        df.groupby("age_band")["predicted_churn"]
-        .mean()
-        .mul(100)
-        .round(2)
-        .reset_index()
-        .rename(columns={"age_band": "연령대", "predicted_churn": "예측 이탈률"})
-    )
-    st.bar_chart(age_churn.set_index("연령대"))
+
+    # 데이터
+    df_plot = df.copy()
+    # 고위험군(risk_tier: high, critical임을 확인)
+    df_plot['high_risk'] = df_plot['risk_tier'].isin(['high', 'critical']).astype(int)
+
+    # 집계 데이터
+    age_summary = df_plot.groupby("age_band").agg(
+        avg_churn=("predicted_churn", "mean"),
+        avg_high_risk=("high_risk", "mean")
+    ).reset_index()
+
+    # 퍼센트로 변경
+    age_summary['avg_churn_pct'] = age_summary['avg_churn'] * 100
+    age_summary['avg_high_risk_pct'] = age_summary['avg_high_risk'] * 100
+
+    # 그래프
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # 연령대별 평균 이탈률
+    ax1.bar(age_summary['age_band'], age_summary['avg_churn_pct'], color='skyblue', alpha=0.6, label='평균 이탈률 (%)')
+    ax1.set_xlabel('연령대')
+    ax1.set_ylabel('평균 이탈률 (%)', color='skyblue')
+    ax1.tick_params(axis='y', labelcolor='skyblue')
+
+    # 연령대별 이탈률 고위험군
+    ax2 = ax1.twinx()
+    ax2.bar(age_summary['age_band'], age_summary['avg_high_risk_pct'], color='red', label='이탈률 고위험 (%)')
+    ax2.set_ylabel('이탈률 고위험 (%)', color='red')
+
+    # ax1, ax2 테두리 삭제
+    for spine in ax1.spines.values():
+        spine.set_visible(False)
+    for spine in ax2.spines.values():
+        spine.set_visible(False)
+
+    # st.write(age_summary['age_band'])
+
+    # y축 사이즈 고정
+    ax1.set_ylim(0, 100)
+    ax2.set_ylim(0, 100)
+
+    fig.tight_layout()
+    st.pyplot(fig)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with right:
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">상품별 고객 분포</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">상품별 고객 이탈률 분포</div>', unsafe_allow_html=True)
     product_counts = df["policy_type"].value_counts().reset_index()
     product_counts.columns = ["상품", "고객 수"]
     fig = px.pie(product_counts, names="상품", values="고객 수", hole=0.35)
