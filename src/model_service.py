@@ -165,12 +165,28 @@ def evaluate_saved_model() -> dict:
     }
 
 
+def get_risk_tier_cutoffs(threshold: float) -> dict[str, float]:
+    return {
+        "watch": max(0.25, threshold * 1.2),
+        "high": max(0.40, threshold * 2.0),
+        "critical": max(0.60, threshold * 3.0),
+    }
+
+
+def classify_risk_tier(probability: float, threshold: float) -> str:
+    cutoffs = get_risk_tier_cutoffs(threshold)
+    if probability >= cutoffs["critical"]:
+        return "critical"
+    if probability >= cutoffs["high"]:
+        return "high"
+    if probability >= cutoffs["watch"]:
+        return "watch"
+    return "stable"
+
+
 def add_risk_tier(scored_df: pd.DataFrame, threshold: float) -> pd.DataFrame:
     df = scored_df.copy()
-    df["risk_tier"] = "stable"
-    df.loc[df["churn_probability"] >= threshold, "risk_tier"] = "watch"
-    df.loc[df["churn_probability"] >= max(0.30, threshold * 1.5), "risk_tier"] = "high"
-    df.loc[df["churn_probability"] >= max(0.50, threshold * 2.5), "risk_tier"] = "critical"
+    df["risk_tier"] = df["churn_probability"].apply(lambda value: classify_risk_tier(value, threshold))
     return df
 
 

@@ -65,9 +65,11 @@ with col2:
         unsafe_allow_html=True,
     )
 with col3:
-    stable_count = summary["total_customers"] - summary["predicted_churn_customers"]
+    stable_count = summary["total_customers"] - (
+        summary["critical_customers"] + summary["high_customers"] + summary["watch_customers"]
+    )
     st.markdown(
-        f'<div class="card-success"><div class="card-label" style="color:#16a34a;">유지 예상 고객</div><div class="card-number" style="color:#15803d;">{stable_count:,}</div></div>',
+        f'<div class="card-success"><div class="card-label" style="color:#16a34a;">안정 고객</div><div class="card-number" style="color:#15803d;">{stable_count:,}</div></div>',
         unsafe_allow_html=True,
     )
 

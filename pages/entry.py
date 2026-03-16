@@ -78,6 +78,7 @@ total_customers = int(len(df))
 predicted_churn_count = int(df["predicted_churn"].sum())
 predicted_churn_rate = (predicted_churn_count / total_customers) * 100 if total_customers else 0
 high_risk_count = int(df["risk_tier"].isin(["high", "critical"]).sum())
+stable_count = int((df["risk_tier"] == "stable").sum())
 
 st.markdown('<div class="main-title">대시보드</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">new 모델 예측 결과 기준 고객 이탈 모니터링 현황</div>', unsafe_allow_html=True)
@@ -87,8 +88,8 @@ with col1:
     st.markdown(
         f"""
         <div class="card">
-            <div class="card-title">전체 고객 수/ 현재 고객 수 </div>
-            <div class="card-value">{total_customers:,} / {total_customers-predicted_churn_count:,}</div>
+            <div class="card-title">전체 고객 수 / 안정 고객 수</div>
+            <div class="card-value">{total_customers:,} / {stable_count:,}</div>
         </div>
         """,
         unsafe_allow_html=True,

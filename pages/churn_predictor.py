@@ -3,7 +3,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
-from src.model_service import load_model_bundle
+from src.model_service import classify_risk_tier, load_model_bundle, risk_tier_to_korean
 
 st.set_page_config(
     page_title="고객 이탈 예측",
@@ -359,21 +359,27 @@ with st.container(border=True):
         prob = model.predict_proba(input_df)[:, 1][0]
         pred = 1 if prob >= threshold else 0
 
-        if prob >= 0.70:
-            risk = "고위험"
-            card_class = "metric-card-high"
-        elif prob >= 0.40:
-            risk = "중위험"
-            card_class = "metric-card-mid"
-        else:
-            risk = "저위험"
-            card_class = "metric-card-low"
+        # Reuse the shared risk-tier thresholds used by the dashboard and watchlist pages.
+        risk_tier = classify_risk_tier(prob, threshold)
+        risk = risk_tier_to_korean(risk_tier)
+        card_class = {
+            "critical": "metric-card-high",
+            "high": "metric-card-high",
+            "watch": "metric-card-mid",
+            "stable": "metric-card-low",
+        }[risk_tier]
+        status_text = {
+            "critical": "즉시 대응 필요",
+            "high": "고위험 고객",
+            "watch": "관찰 필요 고객",
+            "stable": "안정 고객",
+        }[risk_tier]
 
         st.markdown(f"""
         <div class="{card_class}">
             <div class="metric-label">예측 결과</div>
             <div class="metric-value">이탈 확률 {prob*100:.1f}%</div>
-            <div class="metric-sub">위험도: {risk}</div>
+            <div class="metric-sub">위험 등급: {risk}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -409,7 +415,7 @@ with st.container(border=True):
             </div>
             <div class="info-chip">
                 <div class="info-chip-label">예측 클래스</div>
-                <div class="info-chip-value">{"이탈 위험 고객" if pred == 1 else "유지 가능 고객"}</div>
+                <div class="info-chip-value">{status_text}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -433,7 +439,7 @@ with st.container(border=True):
             for reason in reasons[:3]:
                 st.write(f"- {reason}")
         else:
-            st.write("- 입력 정보 기준 뚜렷한 고위험 신호는 상대적으로 적습니다.")
+            st.write("- 입력 정보 기준 뚜렷한 위험 신호는 상대적으로 적습니다.")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(
@@ -443,123 +449,3 @@ with st.container(border=True):
 
     else:
         st.info("양식을 작성하고 예측 버튼을 클릭하세요.")
-# left, right = st.columns([1.05, 0.95], gap="large")
-#
-# with left:
-#     with st.container(border=True):
-#         st.markdown('<div class="section-title">고객 정보 입력</div>', unsafe_allow_html=True)
-#
-#         with st.form("predict_form"):
-#             age = st.number_input("나이", min_value=18, max_value=100, value=35)
-#             policy_type = st.selectbox("보험 상품", policy_options)
-#             premium = st.number_input("현재 보험료 (원)", min_value=0, value=150000, step=10000)
-#             tenure = st.number_input("가입 기간 (개월)", min_value=1, max_value=600, value=24)
-#             late_payment_count = st.number_input("최근 1년 연체 횟수", min_value=0, max_value=20, value=0)
-#             quote_requested_flag = st.selectbox("견적 요청 여부", [0, 1], format_func=lambda x: "아니오" if x == 0 else "예")
-#             num_claims_12m = st.number_input("최근 1년 청구 횟수", min_value=0, max_value=20, value=0)
-#
-#             submitted = st.form_submit_button("예측하기", use_container_width=True)
-#
-# with right:
-#     with st.container(border=True):
-#         st.markdown('<div class="section-title">예측 결과</div>', unsafe_allow_html=True)
-#
-#         if submitted:
-#             input_df = build_input_row(
-#                 raw_df=df,
-#                 age=age,
-#                 policy_type=policy_type,
-#                 tenure=tenure,
-#                 premium=premium,
-#                 late_payment_count=late_payment_count,
-#                 quote_requested_flag=quote_requested_flag,
-#                 num_claims_12m=num_claims_12m
-#             )
-#
-#             prob = model.predict_proba(input_df)[:, 1][0]
-#             pred = 1 if prob >= threshold else 0
-#
-#             if prob >= 0.70:
-#                 risk = "고위험"
-#                 card_class = "metric-card-high"
-#             elif prob >= 0.40:
-#                 risk = "중위험"
-#                 card_class = "metric-card-mid"
-#             else:
-#                 risk = "저위험"
-#                 card_class = "metric-card-low"
-#
-#             st.markdown(f"""
-#             <div class="{card_class}">
-#                 <div class="metric-label">예측 결과</div>
-#                 <div class="metric-value">이탈 확률 {prob*100:.1f}%</div>
-#                 <div class="metric-sub">위험도: {risk}</div>
-#             </div>
-#             """, unsafe_allow_html=True)
-#
-#             st.markdown(f"""
-#             <div class="info-chip-wrap">
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">나이</div>
-#                     <div class="info-chip-value">{age}세</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">보험 상품</div>
-#                     <div class="info-chip-value">{policy_type}</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">현재 보험료</div>
-#                     <div class="info-chip-value">{premium:,}원</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">가입 기간</div>
-#                     <div class="info-chip-value">{tenure}개월</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">연체 횟수</div>
-#                     <div class="info-chip-value">{late_payment_count}회</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">견적 요청</div>
-#                     <div class="info-chip-value">{"예" if quote_requested_flag == 1 else "아니오"}</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">청구 횟수</div>
-#                     <div class="info-chip-value">{num_claims_12m}회</div>
-#                 </div>
-#                 <div class="info-chip">
-#                     <div class="info-chip-label">예측 클래스</div>
-#                     <div class="info-chip-value">{"이탈 위험 고객" if pred == 1 else "유지 가능 고객"}</div>
-#                 </div>
-#             </div>
-#             """, unsafe_allow_html=True)
-#
-#             reasons = []
-#             if late_payment_count >= 2:
-#                 reasons.append("연체 횟수가 높아 납부 불안정 신호가 있습니다.")
-#             if quote_requested_flag == 1:
-#                 reasons.append("비교 견적 요청 이력이 있어 이탈 가능성이 높아질 수 있습니다.")
-#             if tenure <= 24:
-#                 reasons.append("가입 기간이 짧아 계약 결속도가 낮을 수 있습니다.")
-#             if premium >= 200000:
-#                 reasons.append("보험료 수준이 높아 가격 부담이 작용할 수 있습니다.")
-#             if num_claims_12m >= 3:
-#                 reasons.append("최근 청구 이력이 많아 서비스 경험이 이탈에 영향을 줄 수 있습니다.")
-#
-#             st.markdown('<div class="reason-box">', unsafe_allow_html=True)
-#             st.markdown('<div class="reason-title">해석 포인트</div>', unsafe_allow_html=True)
-#
-#             if reasons:
-#                 for reason in reasons[:3]:
-#                     st.write(f"- {reason}")
-#             else:
-#                 st.write("- 입력 정보 기준 뚜렷한 고위험 신호는 상대적으로 적습니다.")
-#
-#             st.markdown('</div>', unsafe_allow_html=True)
-#             st.markdown(
-#                 f'<div class="footer-note">모델 기준 threshold: {threshold:.4f}</div>',
-#                 unsafe_allow_html=True
-#             )
-#
-#         else:
-#             st.info("좌측 양식을 작성하고 예측 버튼을 클릭하세요.")
