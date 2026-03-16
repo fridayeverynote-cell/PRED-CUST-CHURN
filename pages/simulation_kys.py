@@ -110,6 +110,9 @@ div[data-testid="stMetricLabel"] {
 div[data-testid="stMetricValue"] {
     color: #0f172a;
 }
+div[data-testid="stButton"]{
+    margin-top: 11px;
+}
 </style>
 """, unsafe_allow_html=True)
 

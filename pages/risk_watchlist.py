@@ -34,6 +34,7 @@ st.markdown(
     color: #64748b;
     margin-bottom: 2rem;
 }
+.card-emergency {background-color: #fee2e2; border: 1px solid #7f1d1d;border-radius: 18px;padding: 20px; }
 .card-danger { background-color: #fff5f5; border: 1px solid #fecaca; border-radius: 18px; padding: 20px; }
 .card-warning { background-color: #fffbeb; border: 1px solid #fed7aa; border-radius: 18px; padding: 20px; }
 .card-success { background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 18px; padding: 20px; }
@@ -53,23 +54,26 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.markdown(
-        f'<div class="card-danger"><div class="card-label" style="color:#dc2626;">고위험 고객</div><div class="card-number" style="color:#b91c1c;">{summary["critical_customers"] + summary["high_customers"]:,}</div></div>',
+        f'<div class="card-emergency"><div class="card-label" style="color: #991b1b;">즉시대응 고객</div><div class="card-number" style="color:#b91c1c;">{summary["critical_customers"]:,}</div></div>',
         unsafe_allow_html=True,
     )
 with col2:
     st.markdown(
-        f'<div class="card-warning"><div class="card-label" style="color:#d97706;">관찰 필요 고객</div><div class="card-number" style="color:#c2410c;">{summary["watch_customers"]:,}</div></div>',
+        f'<div class="card-danger"><div class="card-label" style="color:#dc2626;">고위험 고객</div><div class="card-number" style="color:#b91c1c;">{summary["high_customers"]:,}</div></div>',
         unsafe_allow_html=True,
     )
 with col3:
-    stable_count = summary["total_customers"] - (
-        summary["critical_customers"] + summary["high_customers"] + summary["watch_customers"]
-    )
     st.markdown(
-        f'<div class="card-success"><div class="card-label" style="color:#16a34a;">안정 고객</div><div class="card-number" style="color:#15803d;">{stable_count:,}</div></div>',
+        f'<div class="card-warning"><div class="card-label" style="color:#d97706;">관찰 필요 고객</div><div class="card-number" style="color:#c2410c;">{summary["watch_customers"]:,}</div></div>',
+        unsafe_allow_html=True,
+    )
+with col4:
+    stable_count = summary["total_customers"] - summary["predicted_churn_customers"]
+    st.markdown(
+        f'<div class="card-success"><div class="card-label" style="color:#16a34a;">유지 예상 고객</div><div class="card-number" style="color:#15803d;">{stable_count:,}</div></div>',
         unsafe_allow_html=True,
     )
 
