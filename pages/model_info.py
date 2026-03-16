@@ -45,7 +45,7 @@ g_col1, g_col2, g_col3 = st.columns(3)
 with g_col1:
     # 💡 Recall: #C5E1A5 (파스텔 연두) 적용
     st.plotly_chart(draw_gauge_chart(metrics["recall"], "Recall (재현율)"), use_container_width=True)
-    st.caption(" 실제 이탈 고객의 약 90%를 탐지합니다")
+    st.caption(" 실제 이탈 고객의 약 90%를 탐지")
 
 with g_col2:
     # ROC-AUC는 기존 그린톤 유지 (혹은 원하는 다른 색상으로 변경 가능)

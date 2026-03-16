@@ -113,6 +113,26 @@ div[data-testid="stMetricValue"] {
 div[data-testid="stButton"]{
     margin-top: 11px;
 }
+
+/* 기본 버튼 색 */
+div[data-testid="stButton"] > button {
+    background: #ff4b4b;
+    color: white;
+    border-radius: 12px;
+    transition: 0.2s;
+}
+
+/* 마우스 올렸을 때 */
+div[data-testid="stButton"] > button:hover {
+    background: #1e293b;
+    color: white;
+    border: #1e293b;
+}
+
+/* 클릭할 때 */
+div[data-testid="stButton"] > button:active {
+    background-color: #1e40af;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -530,7 +550,7 @@ def draw_pretty_bar_chart(title, ylabel, before_value, after_value, before_color
 st.markdown('<div class="big-title">📈 What-If 비즈니스 시뮬레이션</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="sub-text"><b>정책을 바꾸면 이탈률은 어떻게 달라질까?</b> '
-    '학습에 사용한 실제 파생변수를 그대로 적용해 정책 변화 효과를 시뮬레이션합니다.</div>',
+    '학습에 사용한 실제 파생변수를 그대로 적용해 정책 변화 효과를 시뮬레이션</div>',
     unsafe_allow_html=True
 )
 

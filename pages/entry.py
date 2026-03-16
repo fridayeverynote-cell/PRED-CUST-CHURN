@@ -84,20 +84,8 @@ DESCRIPTION_KO = {
     "Underlying churn probability used to generate labels (drop before upload if desired)": "라벨 생성용 내부 이탈 확률",
 }
 
-@st.cache_data
-def load_data_dictionary() -> pd.DataFrame | None:
-    dict_path = Path(__file__).resolve().parent.parent / "data" / "insurance_policyholder_churn_data_dictionary.csv"
-    if not dict_path.exists():
-        return None
-
-    data_dict = pd.read_csv(dict_path)
-    if "description" in data_dict.columns:
-        data_dict["description"] = data_dict["description"].map(lambda value: DESCRIPTION_KO.get(value, value))
-    return data_dict
-
 # 홈 화면도 원본 CSV가 아니라 모델이 만든 예측 결과 파일을 기준으로 표시합니다.
 df = load_scored_customers_file()
-data_dict = load_data_dictionary()
 
 total_customers = int(len(df))
 predicted_churn_count = int(df["predicted_churn"].sum())
@@ -202,38 +190,3 @@ with right:
     st.plotly_chart(fig, width="stretch")
     st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown("### 예측 데이터 미리보기")
-preview_cols = [
-    "customer_id",
-    "region_name",
-    "age",
-    "age_band",
-    "policy_type",
-    "current_premium",
-    "churn_probability",
-    "predicted_churn",
-    "risk_tier_ko",
-    "prediction_reason",
-]
-preview_df = df[preview_cols].head(20).copy()
-preview_df["churn_probability"] = (preview_df["churn_probability"] * 100).round(1).astype(str) + "%"
-preview_df["predicted_churn"] = preview_df["predicted_churn"].map({1: "이탈 예상", 0: "유지 예상"})
-preview_df = preview_df.rename(
-    columns={
-        "customer_id": "고객 ID",
-        "region_name": "지역",
-        "age": "나이",
-        "age_band": "연령대",
-        "policy_type": "상품 유형",
-        "current_premium": "현재 보험료",
-        "churn_probability": "예측 이탈확률",
-        "predicted_churn": "예측 결과",
-        "risk_tier_ko": "위험 등급",
-        "prediction_reason": "예측 사유",
-    }
-)
-st.dataframe(preview_df, width="stretch", hide_index=True)
-
-if data_dict is not None:
-    with st.expander("컬럼 설명 보기"):
-        st.dataframe(data_dict, width="stretch", hide_index=True)

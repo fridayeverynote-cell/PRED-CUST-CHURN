@@ -157,7 +157,7 @@ div[data-baseweb="input"] > div {
     height: 38px;
     font-weight: 800;
     font-size: 1rem;
-    background: #97bfb4;
+    background: #ff4b4b;
     color: white;
     border: none;
     margin-top: 24px;
@@ -313,7 +313,7 @@ policy_options = sorted(df["policy_type"].dropna().unique().tolist())
 # ===============================
 st.markdown('<div class="main-title">고객 이탈 예측</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sub-title">AI 기반 고객 이탈 예측 분석 · 주요 고객 위험 신호를 빠르게 확인할 수 있습니다.</div>',
+    '<div class="sub-title">AI 기반 고객 이탈 예측 분석 · 주요 고객 위험 신호를 빠르게 확인</div>',
     unsafe_allow_html=True,
 )
 
@@ -342,9 +342,9 @@ with st.container(border=True):
 
             submitted = st.form_submit_button("예측하기", use_container_width=True)
 
-with st.container(border=True):
-    st.markdown('<div class="section-title">예측 결과</div>', unsafe_allow_html=True)
 
+st.markdown('<div class="section-title">예측 결과</div>', unsafe_allow_html=True)
+with st.container(border=True):
     if submitted:
         input_df = build_input_row(
             raw_df=df,
