@@ -32,6 +32,14 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# 컬러 리스트
+custom_pastel_map = [
+    "#FF4848",
+    "#FFD371",
+    "#C2FFD9",
+    "#9DDAC6",
+    "#97a6c3"   # 사이드바 hover 색상코드
+]
 
 DESCRIPTION_KO = {
     "Unique customer identifier": "고객 고유 식별자",
@@ -94,8 +102,8 @@ data_dict = load_data_dictionary()
 total_customers = int(len(df))
 predicted_churn_count = int(df["predicted_churn"].sum())
 critical_count = int((df["risk_tier"] == "critical").sum())
-critical_rate = (critical_count / total_customers) * 100 if total_customers else 0
 high_risk_count = int(df["risk_tier"].isin(["high", "critical"]).sum())
+high_risk_rate = (high_risk_count / total_customers) * 100 if total_customers else 0
 stable_count = int((df["risk_tier"] == "stable").sum())
 
 st.markdown('<div class="main-title">대시보드</div>', unsafe_allow_html=True)
@@ -106,8 +114,8 @@ with col1:
     st.markdown(
         f"""
         <div class="card">
-            <div class="card-title">전체 고객 수 / 안정 고객 수</div>
-            <div class="card-value">{total_customers:,} / {stable_count:,}</div>
+            <div class="card-title">전체 고객 수</div>
+            <div class="card-value">{total_customers:,}명</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -116,8 +124,8 @@ with col2:
     st.markdown(
         f"""
         <div class="card">
-            <div class="card-title">즉시 대응 고객 비율</div>
-            <div class="card-value">{critical_rate:.1f}%</div>
+            <div class="card-title">즉시 대응 고객 수</div>
+            <div class="card-value">{critical_count:,}명</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -126,8 +134,8 @@ with col3:
     st.markdown(
         f"""
         <div class="card">
-            <div class="card-title">고위험 고객 수</div>
-            <div class="card-value">{high_risk_count:,}</div>
+            <div class="card-title">관리 고객 비율(즉시 대응 + 고위험)</div>
+            <div class="card-value">{high_risk_rate:.1f}%</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -158,15 +166,15 @@ with left:
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     # 연령대별 평균 이탈률
-    ax1.bar(age_summary['age_band'], age_summary['avg_churn_pct'], color='skyblue', alpha=0.6, label='평균 이탈률 (%)')
+    ax1.bar(age_summary['age_band'], age_summary['avg_churn_pct'], color='#f0f2f6', alpha=0.6, label='평균 이탈률 (%)')
     ax1.set_xlabel('연령대')
-    ax1.set_ylabel('평균 이탈률 (%)', color='skyblue')
-    ax1.tick_params(axis='y', labelcolor='skyblue')
+    ax1.set_ylabel('평균 이탈률 (%)', color='#f0f2f6')
+    ax1.tick_params(axis='y', labelcolor='black')
 
     # 연령대별 이탈률 고위험군
     ax2 = ax1.twinx()
-    ax2.bar(age_summary['age_band'], age_summary['avg_high_risk_pct'], color='red', label='이탈률 고위험 (%)')
-    ax2.set_ylabel('이탈률 고위험 (%)', color='red')
+    ax2.bar(age_summary['age_band'], age_summary['avg_high_risk_pct'], color="#FF4848", label='이탈률 고위험 (%)')
+    ax2.set_ylabel('이탈률 고위험 (%)', color='black')
 
     # ax1, ax2 테두리 삭제
     for spine in ax1.spines.values():
@@ -189,7 +197,7 @@ with right:
     st.markdown('<div class="section-title">상품별 고객 이탈률 분포</div>', unsafe_allow_html=True)
     product_counts = df["policy_type"].value_counts().reset_index()
     product_counts.columns = ["상품", "고객 수"]
-    fig = px.pie(product_counts, names="상품", values="고객 수", hole=0.35)
+    fig = px.pie(product_counts, names="상품", values="고객 수", hole=0.35, color_discrete_sequence=custom_pastel_map)
     fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, width="stretch")
     st.markdown('</div>', unsafe_allow_html=True)
