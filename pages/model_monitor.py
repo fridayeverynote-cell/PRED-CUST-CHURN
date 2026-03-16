@@ -46,7 +46,17 @@ st.markdown(
     .report-title { font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.2rem; }
     .report-subtitle { color: #64748b; font-size: 1rem; margin-bottom: 1.5rem; }
     .section-title { font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 2.5rem 0 1.2rem 0; padding-left: 0.5rem; border-left: 5px solid #3b82f6; }
-    .card { background: white; border-radius: 20px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; height: 100%; }
+    .card {
+    background: white;
+    border-radius: 22px;
+    padding: 1.35rem 1.45rem;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+    border: 1px solid #e2e8f0;
+    height: 100%;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+}
     .kpi-card { border-radius: 20px; padding: 1.5rem; min-height: 160px; display: flex; flex-direction: column; justify-content: center; transition: transform 0.2s; }
     .kpi-card:hover { transform: translateY(-5px); }
     .kpi-neutral { background: #ffffff; border: 1px solid #e2e8f0; }
@@ -57,7 +67,20 @@ st.markdown(
     .kpi-label { font-size: 1rem; color: #64748b; font-weight: 600; margin-bottom: 0.5rem; }
     .kpi-value { font-size: 2.4rem; font-weight: 800; color: #0f172a; }
     .kpi-sub { font-size: 0.9rem; color: #94a3b8; margin-top: 0.5rem; }
-    .insight-pill { display: inline-block; padding: 0.3rem 1rem; border-radius: 8px; background: #f1f5f9; font-weight: 700; color: #334155; margin-bottom: 0.8rem; }
+    .insight-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 44px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 0.9rem;
+    }
+    .insight-row-gap {
+        margin-top: 1rem;
+    }
     .insight-body { font-size: 1.05rem; line-height: 1.7; color: #334155; }
     .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
     .info-item { background: #f8fafc; border-radius: 12px; padding: 1rem; border: 1px solid #f1f5f9; }
@@ -92,10 +115,10 @@ def build_group_insight(df: pd.DataFrame, tier: str) -> str:
     quote_rate = group_df["quote_requested_flag"].mean() * 100 if "quote_requested_flag" in group_df.columns else 0
 
     insights = {
-        "critical": f"**즉시 대응** 고객군은 보험료 변동({prem_change:.1f}%)과 타사 견적 요청({quote_rate:.1f}%)이 결합된 이탈 직전 단계입니다.",
-        "high": f"**고위험** 고객군은 민원 발생률({comp_rate:.1f}%)이 상대적으로 높으며 가격 민감도가 상승 중입니다.",
-        "watch": f"**관찰 필요** 고객군은 이탈 징후가 낮으나 견적 요청({quote_rate:.1f}%) 등의 간접 신호가 관측됩니다.",
-        "stable": f"**안정** 고객군은 변동성이 낮으며 서비스 만족도가 유지되고 있는 층입니다."
+        "critical": f"보험료 변동({prem_change:.1f}%)과 타사 견적 요청({quote_rate:.1f}%)이 결합된 이탈 직전 단계입니다.",
+        "high": f"민원 발생률({comp_rate:.1f}%)이 상대적으로 높으며 가격 민감도가 상승 중입니다.",
+        "watch": f"이탈 징후가 낮으나 견적 요청({quote_rate:.1f}%) 등의 간접 신호가 관측됩니다.",
+        "stable": f"변동성이 낮으며 서비스 만족도가 유지되고 있는 층입니다."
     }
     return insights.get(tier, "")
 
@@ -134,28 +157,38 @@ try:
             unsafe_allow_html=True
         )
 
-   
+
     # 인사이트 섹션 (통합)
     st.markdown('<div class="section-title">핵심 그룹별 인사이트</div>', unsafe_allow_html=True)
-    ins_l, ins_r = st.columns(2)
 
-    with ins_l:
-        for tier in ["critical", "high"]:
-            with st.container():
-                st.markdown(
-                    f'<div class="card"><div class="insight-pill" style="background:{RISK_COLORS[tier]}22; color:{RISK_COLORS[tier]}">{RISK_LABELS[tier]}</div>'
-                    f'<div class="insight-body">{build_group_insight(scored_df, tier)}</div></div>',
-                    unsafe_allow_html=True)
-                st.write("")  # 간격
+    # 2x2 배열을 위해 컬럼 생성
+    row1_col1, row1_col2 = st.columns(2)
+    st.markdown('<div class="insight-row-gap"></div>', unsafe_allow_html=True)
+    row2_col1, row2_col2 = st.columns(2)
 
-    with ins_r:
-        for tier in ["watch", "stable"]:
-            with st.container():
-                st.markdown(
-                    f'<div class="card"><div class="insight-pill" style="background:{RISK_COLORS[tier]}22; color:{RISK_COLORS[tier]}">{RISK_LABELS[tier]}</div>'
-                    f'<div class="insight-body">{build_group_insight(scored_df, tier)}</div></div>',
-                    unsafe_allow_html=True)
-                st.write("")
+    # 각 칸에 들어갈 데이터 매핑
+    cells = [
+        (row1_col1, "critical"),
+        (row1_col2, "watch"),
+        (row2_col1, "high"),
+        (row2_col2, "stable")
+    ]
+
+    for col, tier in cells:
+        with col:
+            st.markdown(
+                f"""
+                <div class="card">
+                    <div class="insight-pill" style="background:{RISK_COLORS[tier]}22; color:{RISK_COLORS[tier]};">                  
+                        {RISK_LABELS[tier]}
+                    </div>
+                    <div class="insight-body">
+                        {build_group_insight(scored_df, tier)}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     # 데이터 미리보기 섹션
     st.markdown('<div class="section-title">분석 결과 샘플 (상위 30건)</div>', unsafe_allow_html=True)
