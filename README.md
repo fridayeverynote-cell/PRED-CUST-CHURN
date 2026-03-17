@@ -196,7 +196,7 @@ PRED-CUST-CHURN/
 ├── model/                              # 학습된 모델 저장 폴더
 ├── requirements.txt                    # 필요 라이브러리 목록
 └── app.py                              # 실행 streamlit
-
+```
 
 ## 8. 🫱🏻‍🫲🏻팀원 회고
 <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 30px;">
